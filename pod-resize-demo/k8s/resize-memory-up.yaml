@@ -1,0 +1,24 @@
+# Patch to scale memory up.
+# Because the container's resizePolicy for memory is RestartContainer,
+# Kubernetes will restart the container (but NOT reschedule the pod).
+# The pod UID and node assignment stay the same.
+#
+# Apply with:
+#   kubectl patch deployment pod-resize-demo --patch-file k8s/resize-memory-up.yaml
+#
+# Observe the restart:
+#   kubectl get pod -l app=pod-resize-demo -w
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-resize-demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"

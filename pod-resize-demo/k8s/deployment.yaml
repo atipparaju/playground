@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-resize-demo
+  labels:
+    app: pod-resize-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod-resize-demo
+  template:
+    metadata:
+      labels:
+        app: pod-resize-demo
+    spec:
+      containers:
+        - name: app
+          image: docker.io/library/pod-resize-demo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          # ---------------------------------------------------------------
+          # resizePolicy controls whether each resource type can be resized
+          # without restarting the container (NotRequired) or requires a
+          # container restart (RestartContainer).
+          # This field requires Kubernetes >= 1.27 (alpha) / 1.29 (stable).
+          # ---------------------------------------------------------------
+          resizePolicy:
+            - resourceName: cpu
+              restartPolicy: NotRequired   # CPU resize is hot – no restart
+            - resourceName: memory
+              restartPolicy: RestartContainer  # Memory resize restarts container
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          env:
+            # Expose resource requests/limits as env vars so the app can
+            # surface them in its /status endpoint.
+            - name: MY_CPU_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: app
+                  resource: requests.cpu
+            - name: MY_MEM_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: app
+                  resource: limits.memory
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5

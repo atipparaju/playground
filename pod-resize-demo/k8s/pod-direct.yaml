@@ -1,0 +1,62 @@
+# Standalone Pod manifest (no Deployment) for direct pod-level resize demos.
+#
+# The Kubernetes in-place resize API works at the Pod level.  When using a
+# Deployment the controller propagates changes, but you can also patch this
+# pod directly to observe the raw resize flow.
+#
+# Deploy:
+#   kubectl apply -f k8s/pod-direct.yaml
+#
+# Watch status:
+#   kubectl get pod pod-resize-demo-direct -o jsonpath='{.status.resize}'
+#
+# Resize CPU (no restart):
+#   kubectl patch pod pod-resize-demo-direct --subresource resize \
+#     --type merge \
+#     -p '{"spec":{"containers":[{"name":"app","resources":{"requests":{"cpu":"300m"},"limits":{"cpu":"500m"}}}]}}'
+#
+# Check current allocated resources (updated live):
+#   kubectl get pod pod-resize-demo-direct \
+#     -o jsonpath='{.status.containerStatuses[0].resources}'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-resize-demo-direct
+  labels:
+    app: pod-resize-demo
+spec:
+  containers:
+    - name: app
+      image: docker.io/library/pod-resize-demo:latest
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 8080
+      resizePolicy:
+        - resourceName: cpu
+          restartPolicy: NotRequired
+        - resourceName: memory
+          restartPolicy: RestartContainer
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
+      env:
+        - name: MY_CPU_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: app
+              resource: requests.cpu
+        - name: MY_MEM_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: app
+              resource: limits.memory
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 10

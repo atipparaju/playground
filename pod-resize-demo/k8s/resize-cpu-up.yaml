@@ -1,0 +1,22 @@
+# Patch to scale CPU up (hot resize – no pod restart required).
+# Apply with:
+#   kubectl patch deployment pod-resize-demo --patch-file k8s/resize-cpu-up.yaml
+#
+# Then watch the resize status on the running pod:
+#   kubectl get pod -l app=pod-resize-demo -o jsonpath='{.items[0].status.resize}'
+#
+# Expected status progression: Proposed → InProgress → (empty when done)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-resize-demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              cpu: "300m"
+            limits:
+              cpu: "500m"

@@ -1,0 +1,17 @@
+# Patch to scale CPU back down to the original values.
+# Apply with:
+#   kubectl patch deployment pod-resize-demo --patch-file k8s/resize-cpu-down.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-resize-demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "200m"
